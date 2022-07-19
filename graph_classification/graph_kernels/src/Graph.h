@@ -18,10 +18,11 @@ using Node = uint;
 using Nodes = vector<Node>;
 using Label = unsigned long;
 using Labels = vector<Label>;
-using Attributes = vector<vector<float>>;
+using Attribute = vector<float>;
+using Attributes = vector<Attribute>;
 using Edge = tuple<Node, Node>;
 using EdgeLabels = unordered_map<Edge, uint>;
-using EdgeAttributes = unordered_map<Edge, vector<float>>;
+using EdgeAttributes = unordered_map<Edge, Attribute>;
 using EdgeList = vector<Edge>;
 using SpMatrix = Eigen::SparseMatrix<double>;
 using GramMatrix = SpMatrix;
@@ -31,6 +32,10 @@ using S = Eigen::Triplet<double>;
 
 using TwoTuple = tuple<Node, Node>;
 using ThreeTuple = tuple<Node, Node, Node>;
+
+#ifndef MAXNUMCOLOR
+#define MAXNUMCOLOR 1000000
+#endif
 
 namespace std
 {

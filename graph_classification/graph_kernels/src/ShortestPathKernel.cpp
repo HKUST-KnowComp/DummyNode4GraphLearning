@@ -7,7 +7,7 @@ ShortestPathKernel::ShortestPathKernel(const GraphDatabase &graph_database)
 {
 }
 
-GramMatrix ShortestPathKernel::compute_gram_matrix(bool use_labels, const bool compute_gram)
+GramMatrix ShortestPathKernel::compute_gram_matrix(bool use_node_labels, const bool compute_gram)
 {
     size_t num_graphs = m_graph_database.size();
     vector<DistanceCounter> distance_counters;
@@ -15,7 +15,7 @@ GramMatrix ShortestPathKernel::compute_gram_matrix(bool use_labels, const bool c
     // Compute shortest-path triple for each graph in graph database.
     for (const Graph &graph : m_graph_database)
     {
-        DistanceTriples distances = compute_apsp(graph, use_labels);
+        DistanceTriples distances = compute_apsp(graph, use_node_labels);
         DistanceCounter distance_counter;
 
         for (const DistanceTriple d : distances)
@@ -72,7 +72,7 @@ GramMatrix ShortestPathKernel::compute_gram_matrix(bool use_labels, const bool c
     }
 }
 
-DistanceTriples ShortestPathKernel::compute_apsp(const Graph &g, bool use_labels)
+DistanceTriples ShortestPathKernel::compute_apsp(const Graph &g, bool use_node_labels)
 {
     ShortestPathDistances shortest_path_distances;
     size_t num_nodes = g.get_num_nodes();
@@ -122,7 +122,7 @@ DistanceTriples ShortestPathKernel::compute_apsp(const Graph &g, bool use_labels
     {
         for (Node j = i; j < num_nodes; ++j)
         {
-            if (use_labels)
+            if (use_node_labels)
             {
                 triples.push_back(make_tuple(labels[i], labels[j], shortest_path_distances[i][j]));
                 triples.push_back(make_tuple(labels[j], labels[i], shortest_path_distances[i][j]));

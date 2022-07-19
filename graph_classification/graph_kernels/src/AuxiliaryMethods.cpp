@@ -365,7 +365,8 @@ void write_libsvm(const GramMatrix &gram_matrix, const vector<int> classes, stri
 
 Label pairing(const Label a, const Label b)
 {
-    return a >= b ? a * a + a + b : a + b * b;
+    Label c = a >= b ? a * a + a + b : a + b * b;
+    return c;
 }
 
 Label pairing(const vector<Label> labels)

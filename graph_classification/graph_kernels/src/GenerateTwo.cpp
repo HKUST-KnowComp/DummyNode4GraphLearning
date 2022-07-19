@@ -9,10 +9,11 @@ GenerateTwo::GenerateTwo(const GraphDatabase &graph_database)
 {
 }
 
-GramMatrix GenerateTwo::compute_gram_matrix(const uint num_iterations, const bool use_labels,
+GramMatrix GenerateTwo::compute_gram_matrix(const uint num_iterations, const bool use_node_labels,
                                             const bool use_edge_labels, const string algorithm, const bool simple,
                                             const bool compute_gram)
 {
+    size_t num_graphs = m_graph_database.size();
     vector<ColorCounter> color_counters;
     color_counters.reserve(m_graph_database.size());
 
@@ -22,24 +23,20 @@ GramMatrix GenerateTwo::compute_gram_matrix(const uint num_iterations, const boo
         if (simple)
         {
             color_counters.push_back(
-                compute_colors_simple(graph, num_iterations, use_labels, use_edge_labels, algorithm));
+                compute_colors_simple(graph, num_iterations, use_node_labels, use_edge_labels, algorithm).first);
         }
         else
         {
-            color_counters.push_back(compute_colors(graph, num_iterations, use_labels, use_edge_labels, algorithm));
+            color_counters.push_back(
+                compute_colors(graph, num_iterations, use_node_labels, use_edge_labels, algorithm).first);
         }
     }
 
-    size_t num_graphs = m_graph_database.size();
-    vector<S> nonzero_compenents;
-
     // Compute feature vectors.
-    ColorCounter c;
+    vector<S> nonzero_compenents;
     for (Node i = 0; i < num_graphs; ++i)
     {
-        c = color_counters[i];
-
-        for (const auto &j : c)
+        for (const auto &j : color_counters[i])
         {
             Label key = j.first;
             uint value = j.second;
@@ -65,25 +62,100 @@ GramMatrix GenerateTwo::compute_gram_matrix(const uint num_iterations, const boo
     }
 }
 
-ColorCounter GenerateTwo::compute_colors(const Graph &g, const uint num_iterations, const bool use_labels,
-                                         const bool use_edge_labels, const string algorithm)
+vector<GramMatrix> GenerateTwo::compute_gram_matrices(const uint num_iterations, const bool use_node_labels,
+                                                      const bool use_edge_labels, const string algorithm,
+                                                      const bool simple, const bool compute_gram)
+{
+    size_t num_graphs = m_graph_database.size();
+    vector<ColorCounter> color_counters;
+    color_counters.reserve(num_graphs);
+    vector<vector<uint>> color_numbers;
+    color_numbers.reserve(num_graphs);
+    vector<GramMatrix> gram_matrices;
+    gram_matrices.reserve(num_iterations + 1);
+
+    // Compute labels for each graph in graph database.
+    for (Graph &graph : m_graph_database)
+    {
+        if (simple)
+        {
+            auto colors = compute_colors_simple(graph, num_iterations, use_node_labels, use_edge_labels, algorithm);
+            color_counters.push_back(colors.first);
+            color_numbers.push_back(colors.second);
+        }
+        else
+        {
+            auto colors = compute_colors(graph, num_iterations, use_node_labels, use_edge_labels, algorithm);
+            color_counters.push_back(colors.first);
+            color_numbers.push_back(colors.second);
+        }
+    }
+
+    vector<S> nonzero_compenents;
+    uint num_labels = 0;
+    for (uint h = 0; h < num_iterations + 1; ++h)
+    {
+        // Compute feature vectors.
+        for (Node i = 0; i < num_graphs; ++i)
+        {
+            auto it = color_counters[i].begin();
+            uint new_num_color = color_numbers[i][h];
+            if (h > 0)
+            {
+                for (uint j = 0; j < color_numbers[i][h - 1]; ++j)
+                {
+                    ++it;
+                }
+                new_num_color -= color_numbers[i][h - 1];
+            }
+            while (new_num_color--)
+            {
+                Label key = it->first;
+                uint value = it->second;
+                uint index = m_label_to_index.find(key)->second;
+                num_labels = num_labels > index + 1 ? num_labels : index + 1;
+                nonzero_compenents.push_back(S(i, index, value));
+                ++it;
+            }
+        }
+
+        // Compute Gram matrix or feature vectore
+        GramMatrix feature_vectors(num_graphs, m_num_labels);
+        feature_vectors.setFromTriplets(nonzero_compenents.begin(), nonzero_compenents.end());
+
+        if (not compute_gram)
+        {
+            gram_matrices.push_back(feature_vectors);
+        }
+        else
+        {
+            gram_matrices.push_back(feature_vectors * feature_vectors.transpose());
+        }
+    }
+
+    return gram_matrices;
+}
+
+pair<ColorCounter, vector<uint>> GenerateTwo::compute_colors(const Graph &g, const uint num_iterations,
+                                                             const bool use_node_labels, const bool use_edge_labels,
+                                                             const string algorithm)
 {
     Graph tuple_graph(false);
     if (algorithm == "local" or algorithm == "localp")
     {
-        tuple_graph = generate_local_graph(g, use_labels, use_edge_labels);
+        tuple_graph = generate_local_graph(g, use_node_labels, use_edge_labels);
     }
     else if (algorithm == "wl")
     {
-        tuple_graph = generate_global_graph(g, use_labels, use_edge_labels);
+        tuple_graph = generate_global_graph(g, use_node_labels, use_edge_labels);
     }
     else if (algorithm == "malkin")
     {
-        tuple_graph = generate_global_graph_malkin(g, use_labels, use_edge_labels);
+        tuple_graph = generate_global_graph_malkin(g, use_node_labels, use_edge_labels);
     }
     else if (algorithm == "localc" or algorithm == "localpc")
     {
-        tuple_graph = generate_local_graph_connected(g, use_labels, use_edge_labels);
+        tuple_graph = generate_local_graph_connected(g, use_node_labels, use_edge_labels);
     }
 
     size_t num_nodes = tuple_graph.get_num_nodes();
@@ -213,8 +285,12 @@ ColorCounter GenerateTwo::compute_colors(const Graph &g, const uint num_iteratio
         }
     }
 
+    vector<uint> color_nums;
+    color_nums.reserve(num_iterations + 1);
+    color_nums.push_back(color_map.size());
+
     uint h = 1;
-    while (h <= num_iterations)
+    while (h <= num_iterations && color_nums[h - 1] <= MAXNUMCOLOR)
     {
         // Iterate over all nodes.
         for (Node v = 0; v < num_nodes; ++v)
@@ -354,110 +430,43 @@ ColorCounter GenerateTwo::compute_colors(const Graph &g, const uint num_iteratio
             }
         }
 
+        // Remembers previous number of labels
+        color_nums.push_back(color_map.size());
+
         // Assign new colors.
-        coloring = coloring_temp;
+        std::swap(coloring, coloring_temp);
         h++;
-
-        unordered_map<Node, bool> check_1;
-        unordered_map<Node, bool> check_2;
-
-        if ((algorithm == "localp" or algorithm == "localpc") and h == num_iterations)
-        {
-            for (Node v = 0; v < num_nodes; ++v)
-            {
-                Nodes neighbors(tuple_graph.get_neighbours(v));
-
-                for (const Node &n : neighbors)
-                {
-                    const auto t = edge_labels.find(make_tuple(v, n));
-
-                    TwoTuple p = node_to_two_tuple.find(n)->second;
-                    Node a = std::get<0>(p);
-                    Node b = std::get<1>(p);
-
-                    if (t->second == 1)
-                    {
-                        Label l = b;
-                        l = AuxiliaryMethods::pairing(l, 1);
-                        l = AuxiliaryMethods::pairing(l, coloring[n]);
-
-                        Label e = a;
-                        e = AuxiliaryMethods::pairing(e, b);
-                        e = AuxiliaryMethods::pairing(e, 1);
-                        const auto is = check_1.find(e);
-
-                        if (is == check_1.end())
-                        {
-                            const auto it = color_map_1.find(l);
-
-                            if (it == color_map_1.end())
-                            {
-                                color_map_1.insert({{l, 1}});
-                            }
-                            else
-                            {
-                                it->second++;
-                            }
-
-                            check_1.insert({{e, true}});
-                        }
-                    }
-
-                    if (t->second == 2)
-                    {
-                        Label l = a;
-
-                        l = AuxiliaryMethods::pairing(l, 2);
-                        l = AuxiliaryMethods::pairing(l, coloring[n]);
-
-                        Label e = a;
-                        e = AuxiliaryMethods::pairing(e, b);
-                        e = AuxiliaryMethods::pairing(e, 2);
-                        const auto is = check_2.find(e);
-
-                        if (is == check_2.end())
-                        {
-                            const auto it = color_map_2.find(l);
-
-                            if (it == color_map_2.end())
-                            {
-                                color_map_2.insert({{l, 1}});
-                            }
-                            else
-                            {
-                                it->second++;
-                            }
-
-                            check_2.insert({{e, true}});
-                        }
-                    }
-                }
-            }
-        }
     }
 
-    return color_map;
+    while (h <= num_iterations)
+    {
+        color_nums.push_back(color_nums[h - 1]);
+        h++;
+    }
+
+    return std::make_pair(color_map, color_nums);
 }
 
-ColorCounter GenerateTwo::compute_colors_simple(const Graph &g, const uint num_iterations, const bool use_labels,
-                                                const bool use_edge_labels, const string algorithm)
+pair<ColorCounter, vector<uint>> GenerateTwo::compute_colors_simple(const Graph &g, const uint num_iterations,
+                                                                    const bool use_node_labels,
+                                                                    const bool use_edge_labels, const string algorithm)
 {
     Graph tuple_graph(false);
     if (algorithm == "local" or algorithm == "localp")
     {
-        tuple_graph = generate_local_graph(g, use_labels, use_edge_labels);
+        tuple_graph = generate_local_graph(g, use_node_labels, use_edge_labels);
     }
     else if (algorithm == "wl")
     {
-        tuple_graph = generate_global_graph(g, use_labels, use_edge_labels);
+        tuple_graph = generate_global_graph(g, use_node_labels, use_edge_labels);
     }
     else if (algorithm == "malkin")
     {
-        tuple_graph = generate_global_graph_malkin(g, use_labels, use_edge_labels);
+        tuple_graph = generate_global_graph_malkin(g, use_node_labels, use_edge_labels);
     }
     else if (algorithm == "localc" or algorithm == "localpc")
     {
-        tuple_graph = generate_local_graph_connected(g, use_labels, use_edge_labels);
+        tuple_graph = generate_local_graph_connected(g, use_node_labels, use_edge_labels);
     }
 
     unordered_map<Node, TwoTuple> node_to_two_tuple;
@@ -584,9 +593,12 @@ ColorCounter GenerateTwo::compute_colors_simple(const Graph &g, const uint num_i
         }
     }
 
-    // size_t tmp = color_map.size();;
+    vector<uint> color_nums;
+    color_nums.reserve(num_iterations + 1);
+    color_nums.push_back(color_map.size());
+
     uint h = 1;
-    while (h <= num_iterations)
+    while (h <= num_iterations && color_nums[h - 1] <= MAXNUMCOLOR)
     {
         // Iterate over all nodes.
         for (Node v = 0; v < num_nodes; ++v)
@@ -719,95 +731,25 @@ ColorCounter GenerateTwo::compute_colors_simple(const Graph &g, const uint num_i
                 it->second++;
             }
         }
-        //            cout << color_map.size()-tmp << endl;
-        //            tmp  = color_map.size();
+
+        // Remembers previous number of labels
+        color_nums.push_back(color_map.size());
 
         // Assign new colors.
-        coloring = coloring_temp;
+        std::swap(coloring, coloring_temp);
         h++;
-
-        unordered_map<Label, bool> check_1;
-        unordered_map<Label, bool> check_2;
-
-        if ((algorithm == "localp" or algorithm == "localpc") and num_iterations == h)
-        {
-            for (Node v = 0; v < num_nodes; ++v)
-            {
-                Nodes neighbors(tuple_graph.get_neighbours(v));
-
-                for (const Node &n : neighbors)
-                {
-                    const auto t = edge_labels.find(make_tuple(v, n));
-
-                    TwoTuple p = node_to_two_tuple.find(n)->second;
-                    Node a = std::get<0>(p);
-                    Node b = std::get<1>(p);
-
-                    if (t->second == 1)
-                    {
-                        Label l = b;
-                        l = AuxiliaryMethods::pairing(l, 1);
-                        l = AuxiliaryMethods::pairing(l, coloring[n]);
-
-                        Label e = a;
-                        e = AuxiliaryMethods::pairing(e, b);
-                        e = AuxiliaryMethods::pairing(e, 1);
-                        const auto is = check_1.find(e);
-
-                        if (is == check_1.end())
-                        {
-                            const auto it = color_map_1.find(l);
-
-                            if (it == color_map_1.end())
-                            {
-                                color_map_1.insert({{l, 1}});
-                            }
-                            else
-                            {
-                                it->second++;
-                            }
-
-                            check_1.insert({{e, true}});
-                        }
-                    }
-
-                    if (t->second == 2)
-                    {
-                        Label l = a;
-
-                        l = AuxiliaryMethods::pairing(l, 2);
-                        l = AuxiliaryMethods::pairing(l, coloring[n]);
-
-                        Label e = a;
-                        e = AuxiliaryMethods::pairing(e, b);
-                        e = AuxiliaryMethods::pairing(e, 2);
-                        const auto is = check_2.find(e);
-
-                        if (is == check_2.end())
-                        {
-                            const auto it = color_map_2.find(l);
-
-                            if (it == color_map_2.end())
-                            {
-                                color_map_2.insert({{l, 1}});
-                            }
-                            else
-                            {
-                                it->second++;
-                            }
-
-                            check_2.insert({{e, true}});
-                        }
-                    }
-                }
-            }
-        }
     }
 
-    return color_map;
+    while (h <= num_iterations)
+    {
+        color_nums.push_back(color_nums[h - 1]);
+        h++;
+    }
+
+    return std::make_pair(color_map, color_nums);
 }
 
-Graph GenerateTwo::generate_local_graph(const Graph &g, const bool use_labels, const bool use_edge_labels)
+Graph GenerateTwo::generate_local_graph(const Graph &g, const bool use_node_labels, const bool use_edge_labels)
 {
     size_t num_nodes = g.get_num_nodes();
     // New graph to be generated.
@@ -826,7 +768,7 @@ Graph GenerateTwo::generate_local_graph(const Graph &g, const bool use_labels, c
     // Create a node for each two set.
     Labels labels;
     Labels tuple_labels;
-    if (use_labels)
+    if (use_node_labels)
     {
         labels = g.get_labels();
     }
@@ -851,7 +793,7 @@ Graph GenerateTwo::generate_local_graph(const Graph &g, const bool use_labels, c
 
             Label c_i = 1;
             Label c_j = 2;
-            if (use_labels)
+            if (use_node_labels)
             {
                 c_i = AuxiliaryMethods::pairing(labels[i] + 1, c_i);
                 c_j = AuxiliaryMethods::pairing(labels[j] + 1, c_j);
@@ -923,7 +865,8 @@ Graph GenerateTwo::generate_local_graph(const Graph &g, const bool use_labels, c
     return two_tuple_graph;
 }
 
-Graph GenerateTwo::generate_local_graph_connected(const Graph &g, const bool use_labels, const bool use_edge_labels)
+Graph GenerateTwo::generate_local_graph_connected(const Graph &g, const bool use_node_labels,
+                                                  const bool use_edge_labels)
 {
     size_t num_nodes = g.get_num_nodes();
     // New graph to be generated.
@@ -942,7 +885,7 @@ Graph GenerateTwo::generate_local_graph_connected(const Graph &g, const bool use
     // Create a node for each two set.
     Labels labels;
     Labels tuple_labels;
-    if (use_labels)
+    if (use_node_labels)
     {
         labels = g.get_labels();
     }
@@ -969,7 +912,7 @@ Graph GenerateTwo::generate_local_graph_connected(const Graph &g, const bool use
 
                 Label c_i = 1;
                 Label c_j = 2;
-                if (use_labels)
+                if (use_node_labels)
                 {
                     c_i = AuxiliaryMethods::pairing(labels[i] + 1, c_i);
                     c_j = AuxiliaryMethods::pairing(labels[j] + 1, c_j);
@@ -1049,7 +992,7 @@ Graph GenerateTwo::generate_local_graph_connected(const Graph &g, const bool use
     return two_tuple_graph;
 }
 
-GramMatrix GenerateTwo::generate_local_sparse_am(const Graph &g, const bool use_labels, const bool use_edge_labels)
+GramMatrix GenerateTwo::generate_local_sparse_am(const Graph &g, const bool use_node_labels, const bool use_edge_labels)
 {
     size_t num_nodes = g.get_num_nodes();
     // New graph to be generated.
@@ -1068,7 +1011,7 @@ GramMatrix GenerateTwo::generate_local_sparse_am(const Graph &g, const bool use_
     // Create a node for each two set.
     Labels labels;
     Labels tuple_labels;
-    if (use_labels)
+    if (use_node_labels)
     {
         labels = g.get_labels();
     }
@@ -1093,7 +1036,7 @@ GramMatrix GenerateTwo::generate_local_sparse_am(const Graph &g, const bool use_
 
             Label c_i = 1;
             Label c_j = 2;
-            if (use_labels)
+            if (use_node_labels)
             {
                 c_i = AuxiliaryMethods::pairing(labels[i] + 1, c_i);
                 c_j = AuxiliaryMethods::pairing(labels[j] + 1, c_j);
@@ -1176,7 +1119,7 @@ GramMatrix GenerateTwo::generate_local_sparse_am(const Graph &g, const bool use_
     return sparse_am;
 }
 
-vector<int> GenerateTwo::get_edge_labels(const Graph &g, const bool use_labels, const bool use_edge_labels)
+vector<int> GenerateTwo::get_edge_labels(const Graph &g, const bool use_node_labels, const bool use_edge_labels)
 {
     size_t num_nodes = g.get_num_nodes();
     // New graph to be generated.
@@ -1195,7 +1138,7 @@ vector<int> GenerateTwo::get_edge_labels(const Graph &g, const bool use_labels, 
     // Create a node for each two set.
     Labels labels;
     Labels tuple_labels;
-    if (use_labels)
+    if (use_node_labels)
     {
         labels = g.get_labels();
     }
@@ -1220,7 +1163,7 @@ vector<int> GenerateTwo::get_edge_labels(const Graph &g, const bool use_labels, 
 
             Label c_i = 1;
             Label c_j = 2;
-            if (use_labels)
+            if (use_node_labels)
             {
                 c_i = AuxiliaryMethods::pairing(labels[i] + 1, c_i);
                 c_j = AuxiliaryMethods::pairing(labels[j] + 1, c_j);
@@ -1305,14 +1248,14 @@ vector<int> GenerateTwo::get_edge_labels(const Graph &g, const bool use_labels, 
     return edge_types;
 }
 
-Labels GenerateTwo::get_node_labels(const Graph &g, const bool use_labels, const bool use_edge_labels)
+Labels GenerateTwo::get_node_labels(const Graph &g, const bool use_node_labels, const bool use_edge_labels)
 {
     size_t num_nodes = g.get_num_nodes();
 
     // Create a node for each two set.
     Labels labels;
     Labels tuple_labels;
-    if (use_labels)
+    if (use_node_labels)
     {
         labels = g.get_labels();
     }
@@ -1329,7 +1272,7 @@ Labels GenerateTwo::get_node_labels(const Graph &g, const bool use_labels, const
         {
             Label c_i = 1;
             Label c_j = 2;
-            if (use_labels)
+            if (use_node_labels)
             {
                 c_i = AuxiliaryMethods::pairing(labels[i] + 1, c_i);
                 c_j = AuxiliaryMethods::pairing(labels[j] + 1, c_j);
@@ -1365,7 +1308,7 @@ Labels GenerateTwo::get_node_labels(const Graph &g, const bool use_labels, const
     return tuple_labels;
 }
 
-Graph GenerateTwo::generate_global_graph(const Graph &g, const bool use_labels, const bool use_edge_labels)
+Graph GenerateTwo::generate_global_graph(const Graph &g, const bool use_node_labels, const bool use_edge_labels)
 {
     size_t num_nodes = g.get_num_nodes();
     // New graph to be generated.
@@ -1384,7 +1327,7 @@ Graph GenerateTwo::generate_global_graph(const Graph &g, const bool use_labels, 
     // Create a node for each two set.
     Labels labels;
     Labels tuple_labels;
-    if (use_labels)
+    if (use_node_labels)
     {
         labels = g.get_labels();
     }
@@ -1409,7 +1352,7 @@ Graph GenerateTwo::generate_global_graph(const Graph &g, const bool use_labels, 
 
             Label c_i = 1;
             Label c_j = 2;
-            if (use_labels)
+            if (use_node_labels)
             {
                 c_i = AuxiliaryMethods::pairing(labels[i] + 1, c_i);
                 c_j = AuxiliaryMethods::pairing(labels[j] + 1, c_j);
@@ -1482,7 +1425,7 @@ Graph GenerateTwo::generate_global_graph(const Graph &g, const bool use_labels, 
     return two_tuple_graph;
 }
 
-Graph GenerateTwo::generate_global_graph_malkin(const Graph &g, const bool use_labels, const bool use_edge_labels)
+Graph GenerateTwo::generate_global_graph_malkin(const Graph &g, const bool use_node_labels, const bool use_edge_labels)
 {
     size_t num_nodes = g.get_num_nodes();
     // New graph to be generated.
@@ -1501,7 +1444,7 @@ Graph GenerateTwo::generate_global_graph_malkin(const Graph &g, const bool use_l
     // Create a node for each two set.
     Labels labels;
     Labels tuple_labels;
-    if (use_labels)
+    if (use_node_labels)
     {
         labels = g.get_labels();
     }
@@ -1526,7 +1469,7 @@ Graph GenerateTwo::generate_global_graph_malkin(const Graph &g, const bool use_l
 
             Label c_i = 1;
             Label c_j = 2;
-            if (use_labels)
+            if (use_node_labels)
             {
                 c_i = AuxiliaryMethods::pairing(labels[i] + 1, c_i);
                 c_j = AuxiliaryMethods::pairing(labels[j] + 1, c_j);

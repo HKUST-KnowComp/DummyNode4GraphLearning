@@ -19,10 +19,15 @@ class GenerateThreeSampling
   public:
     GenerateThreeSampling(const GraphDatabase &graph_database);
 
-    GramMatrix compute_gram_matrix(const uint num_iterations, const bool use_labels, const uint num_samples,
-                                   const bool simple);
+    GramMatrix compute_gram_matrix(const uint num_iterations, const bool use_node_labels, const bool use_edge_labels,
+                                   const uint num_samples, const bool simple, const bool compute_gram);
 
-    Graph generate_local_graph(Graph &g, const uint num_iterations, const uint num_samples, bool use_labels);
+    vector<GramMatrix> compute_gram_matrices(const uint num_iterations, const bool use_node_labels,
+                                             const bool use_edge_labels, const uint num_samples, const bool simple,
+                                             const bool compute_gram);
+
+    Graph generate_local_graph(Graph &g, const uint num_iterations, const uint num_samples, const bool use_node_labels,
+                               const bool use_edge_labels);
 
     ~GenerateThreeSampling();
 
@@ -36,16 +41,17 @@ class GenerateThreeSampling
     unsigned long m_num_labels;
 
     // Computes labels for vertices of graph.
-    ColorCounter compute_colors(Graph &g, const uint num_iterations, const uint num_samples, const bool use_labels);
+    pair<ColorCounter, vector<uint>> compute_colors(Graph &g, const uint num_iterations, const uint num_samples,
+                                                    const bool use_node_labels, const bool use_edge_labels);
 
-    ColorCounter compute_colors_simple(Graph &g, const uint num_iterations, const uint num_samples,
-                                       const bool use_labels);
+    pair<ColorCounter, vector<uint>> compute_colors_simple(Graph &g, const uint num_iterations, const uint num_samples,
+                                                           const bool use_node_labels, const bool use_edge_labels);
 
     // Get neighborhood of a node.
     void explore_neighborhood(Graph &g, const ThreeTuple &triple, const uint num_iterations,
                               unordered_map<ThreeTuple, uint> &triple_to_int, Graph &new_graph, EdgeLabels &edge_type,
                               EdgeLabels &vertex_id, EdgeLabels &local, unordered_map<Node, Label> &node_label_map,
-                              const bool use_labels);
+                              const bool use_node_labels, const bool use_edge_labels);
 
     Label compute_label(Graph &g, Node i, Node j, Node k, Label c_i, Label c_j, Label c_k);
 };

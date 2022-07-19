@@ -21,14 +21,14 @@ class ShortestPathKernel
     ShortestPathKernel(const GraphDatabase &graph_database);
 
     // Computes gram matrix for the Weisfeiler-Lehman subtree kernel.
-    GramMatrix compute_gram_matrix(bool use_labels, const bool compute_gram);
+    GramMatrix compute_gram_matrix(bool use_node_labels, const bool compute_gram);
 
     ~ShortestPathKernel();
 
   private:
     // Computes shortest-path triples for each graph using Floyd-Warshall
     // algorithm.
-    DistanceTriples compute_apsp(const Graph &g, bool use_labels);
+    DistanceTriples compute_apsp(const Graph &g, bool use_node_labels);
 
     // Manages graphs.
     GraphDatabase m_graph_database;

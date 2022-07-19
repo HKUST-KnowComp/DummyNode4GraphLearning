@@ -7,7 +7,7 @@ GraphletKernel::GraphletKernel(const GraphDatabase &graph_database)
 {
 }
 
-GramMatrix GraphletKernel::compute_gram_matrix(const bool use_labels, const bool use_edge_labels,
+GramMatrix GraphletKernel::compute_gram_matrix(const bool use_node_labels, const bool use_edge_labels,
                                                const bool compute_gram)
 {
     vector<GraphletCounter> graphlet_counters;
@@ -16,7 +16,7 @@ GramMatrix GraphletKernel::compute_gram_matrix(const bool use_labels, const bool
     // Compute graphlet count for each graph in graph database.
     for (Graph &graph : m_graph_database)
     {
-        graphlet_counters.push_back(compute_graphlet_count(graph, use_labels, use_edge_labels));
+        graphlet_counters.push_back(compute_graphlet_count(graph, use_node_labels, use_edge_labels));
     }
 
     size_t num_graphs = m_graph_database.size();
@@ -53,7 +53,7 @@ GramMatrix GraphletKernel::compute_gram_matrix(const bool use_labels, const bool
     }
 }
 
-GraphletCounter GraphletKernel::compute_graphlet_count(const Graph &g, const bool use_labels,
+GraphletCounter GraphletKernel::compute_graphlet_count(const Graph &g, const bool use_node_labels,
                                                        const bool use_edge_labels)
 {
     GraphletCounter graphlet_counter;
@@ -62,7 +62,7 @@ GraphletCounter GraphletKernel::compute_graphlet_count(const Graph &g, const boo
     Labels labels;
     labels.reserve(num_nodes);
 
-    if (use_labels)
+    if (use_node_labels)
     {
         labels = g.get_labels();
     }
@@ -90,7 +90,7 @@ GraphletCounter GraphletKernel::compute_graphlet_count(const Graph &g, const boo
                     // Found triangle.
                     if (g.has_edge(u, w))
                     {
-                        if (use_labels)
+                        if (use_node_labels)
                         {
                             new_label = 3;
                             Label l_u = labels[u];
@@ -146,7 +146,7 @@ GraphletCounter GraphletKernel::compute_graphlet_count(const Graph &g, const boo
                     }
                     else
                     { // Found wedge.
-                        if (use_labels)
+                        if (use_node_labels)
                         {
                             new_label = 2;
                             Label l_u = labels[u];

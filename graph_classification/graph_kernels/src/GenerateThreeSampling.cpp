@@ -9,8 +9,9 @@ GenerateThreeSampling::GenerateThreeSampling(const GraphDatabase &graph_database
 {
 }
 
-GramMatrix GenerateThreeSampling::compute_gram_matrix(const uint num_iterations, const bool use_labels,
-                                                      const uint num_samples, const bool simple)
+GramMatrix GenerateThreeSampling::compute_gram_matrix(const uint num_iterations, const bool use_node_labels,
+                                                      const bool use_edge_labels, const uint num_samples,
+                                                      const bool simple, const bool compute_gram)
 {
     vector<ColorCounter> color_counters;
     color_counters.reserve(m_graph_database.size());
@@ -20,11 +21,13 @@ GramMatrix GenerateThreeSampling::compute_gram_matrix(const uint num_iterations,
     {
         if (simple)
         {
-            color_counters.push_back(compute_colors_simple(graph, num_iterations, num_samples, use_labels));
+            color_counters.push_back(
+                compute_colors_simple(graph, num_iterations, num_samples, use_node_labels, use_edge_labels).first);
         }
         else
         {
-            color_counters.push_back(compute_colors(graph, num_iterations, num_samples, use_labels));
+            color_counters.push_back(
+                compute_colors(graph, num_iterations, num_samples, use_node_labels, use_edge_labels).first);
         }
     }
 
@@ -45,21 +48,104 @@ GramMatrix GenerateThreeSampling::compute_gram_matrix(const uint num_iterations,
         }
     }
 
-    // Compute Gram matrix.
+    // Compute Gram matrix or feature vectore
     GramMatrix feature_vectors(num_graphs, m_num_labels);
     feature_vectors.setFromTriplets(nonzero_compenents.begin(), nonzero_compenents.end());
     feature_vectors = feature_vectors * (1.0 / m_num_labels);
-    GramMatrix gram_matrix(num_graphs, num_graphs);
-    gram_matrix = feature_vectors * feature_vectors.transpose();
+    if (not compute_gram)
+    {
+        return feature_vectors;
+    }
+    else
+    {
+        GramMatrix gram_matrix(num_graphs, num_graphs);
+        gram_matrix = feature_vectors * feature_vectors.transpose();
 
-    return gram_matrix;
+        return gram_matrix;
+    }
 }
 
-ColorCounter GenerateThreeSampling::compute_colors(Graph &g, const uint num_iterations, const uint num_samples,
-                                                   const bool use_labels)
+vector<GramMatrix> GenerateThreeSampling::compute_gram_matrices(const uint num_iterations, const bool use_node_labels,
+                                                                const bool use_edge_labels, const uint num_samples,
+                                                                const bool simple, const bool compute_gram)
+{
+    size_t num_graphs = m_graph_database.size();
+    vector<ColorCounter> color_counters;
+    color_counters.reserve(num_graphs);
+    vector<vector<uint>> color_numbers;
+    color_numbers.reserve(num_graphs);
+    vector<GramMatrix> gram_matrices;
+    gram_matrices.reserve(num_iterations + 1);
+
+    // Compute labels for each graph in graph database.
+    for (Graph &graph : m_graph_database)
+    {
+        if (simple)
+        {
+            auto colors = compute_colors_simple(graph, num_iterations, num_samples, use_node_labels, use_edge_labels);
+            color_counters.push_back(colors.first);
+            color_numbers.push_back(colors.second);
+        }
+        else
+        {
+            auto colors = compute_colors(graph, num_iterations, num_samples, use_node_labels, use_edge_labels);
+            color_counters.push_back(colors.first);
+            color_numbers.push_back(colors.second);
+        }
+    }
+
+    vector<S> nonzero_compenents;
+    uint num_labels = 0;
+    for (uint h = 0; h < num_iterations + 1; ++h)
+    {
+        // Compute feature vectors.
+        for (Node i = 0; i < num_graphs; ++i)
+        {
+            auto it = color_counters[i].begin();
+            uint new_num_color = color_numbers[i][h];
+            if (h > 0)
+            {
+                for (uint j = 0; j < color_numbers[i][h - 1]; ++j)
+                {
+                    ++it;
+                }
+                new_num_color -= color_numbers[i][h - 1];
+            }
+            while (new_num_color--)
+            {
+                Label key = it->first;
+                uint value = it->second;
+                uint index = m_label_to_index.find(key)->second;
+                num_labels = num_labels > index + 1 ? num_labels : index + 1;
+                nonzero_compenents.push_back(S(i, index, value));
+                ++it;
+            }
+        }
+
+        // Compute Gram matrix or feature vectore
+        GramMatrix feature_vectors(num_graphs, num_labels);
+        feature_vectors.setFromTriplets(nonzero_compenents.begin(), nonzero_compenents.end());
+        feature_vectors = feature_vectors * (1.0 / num_labels);
+        if (not compute_gram)
+        {
+            gram_matrices.push_back(feature_vectors);
+        }
+        else
+        {
+            gram_matrices.push_back(feature_vectors * feature_vectors.transpose());
+        }
+    }
+
+    return gram_matrices;
+}
+
+pair<ColorCounter, vector<uint>> GenerateThreeSampling::compute_colors(Graph &g, const uint num_iterations,
+                                                                       const uint num_samples,
+                                                                       const bool use_node_labels,
+                                                                       const bool use_edge_labels)
 {
     Graph tuple_graph(false);
-    tuple_graph = generate_local_graph(g, num_iterations, num_samples, use_labels);
+    tuple_graph = generate_local_graph(g, num_iterations, num_samples, use_node_labels, use_edge_labels);
 
     size_t num_nodes = tuple_graph.get_num_nodes();
 
@@ -94,8 +180,12 @@ ColorCounter GenerateThreeSampling::compute_colors(Graph &g, const uint num_iter
         }
     }
 
+    vector<uint> color_nums;
+    color_nums.reserve(num_iterations + 1);
+    color_nums.push_back(color_map.size());
+
     uint h = 1;
-    while (h <= num_iterations)
+    while (h <= num_iterations && color_nums[h - 1] <= MAXNUMCOLOR)
     {
         // Iterate over all nodes.
         for (Node v = 0; v < num_nodes; ++v)
@@ -182,20 +272,31 @@ ColorCounter GenerateThreeSampling::compute_colors(Graph &g, const uint num_iter
             }
         }
 
+        // Remembers previous number of labels
+        color_nums.push_back(color_map.size());
+
         // Assign new colors.
-        coloring = coloring_temp;
+        std::swap(coloring, coloring_temp);
         h++;
     }
 
-    return color_map;
+    while (h <= num_iterations)
+    {
+        color_nums.push_back(color_nums[h - 1]);
+        h++;
+    }
+
+    return std::make_pair(color_map, color_nums);
 }
 
-ColorCounter GenerateThreeSampling::compute_colors_simple(Graph &g, const uint num_iterations, const uint num_samples,
-                                                          const bool use_labels)
+pair<ColorCounter, vector<uint>> GenerateThreeSampling::compute_colors_simple(Graph &g, const uint num_iterations,
+                                                                              const uint num_samples,
+                                                                              const bool use_node_labels,
+                                                                              const bool use_edge_labels)
 {
     Graph tuple_graph(false);
 
-    tuple_graph = generate_local_graph(g, num_iterations, num_samples, use_labels);
+    tuple_graph = generate_local_graph(g, num_iterations, num_samples, use_node_labels, use_edge_labels);
 
     size_t num_nodes = tuple_graph.get_num_nodes();
 
@@ -228,8 +329,12 @@ ColorCounter GenerateThreeSampling::compute_colors_simple(Graph &g, const uint n
         }
     }
 
+    vector<uint> color_nums;
+    color_nums.reserve(num_iterations + 1);
+    color_nums.push_back(color_map.size());
+
     uint h = 1;
-    while (h <= num_iterations)
+    while (h <= num_iterations && color_nums[h - 1] <= MAXNUMCOLOR)
     {
         // Iterate over all nodes.
         for (Node v = 0; v < num_nodes; ++v)
@@ -319,16 +424,25 @@ ColorCounter GenerateThreeSampling::compute_colors_simple(Graph &g, const uint n
             }
         }
 
+        // Remembers previous number of labels
+        color_nums.push_back(color_map.size());
+
         // Assign new colors.
-        coloring = coloring_temp;
+        std::swap(coloring, coloring_temp);
         h++;
     }
 
-    return color_map;
+    while (h <= num_iterations)
+    {
+        color_nums.push_back(color_nums[h - 1]);
+        h++;
+    }
+
+    return std::make_pair(color_map, color_nums);
 }
 
 Graph GenerateThreeSampling::generate_local_graph(Graph &g, const uint num_iterations, const uint num_samples,
-                                                  bool use_labels)
+                                                  const bool use_node_labels, const bool use_edge_labels)
 {
     // New tuple graph.
     Graph new_graph(false);
@@ -350,7 +464,7 @@ Graph GenerateThreeSampling::generate_local_graph(Graph &g, const uint num_itera
     unordered_map<Node, Label> node_label_map;
 
     Labels node_labels;
-    if (use_labels)
+    if (use_node_labels)
     {
         node_labels = g.get_labels();
     }
@@ -376,7 +490,7 @@ Graph GenerateThreeSampling::generate_local_graph(Graph &g, const uint num_itera
         Label c_j = 2;
         Label c_k = 3;
 
-        if (use_labels)
+        if (use_node_labels)
         {
             c_i = AuxiliaryMethods::pairing(node_labels[i] + 1, c_i);
             c_j = AuxiliaryMethods::pairing(node_labels[j] + 1, c_j);
@@ -431,7 +545,7 @@ Graph GenerateThreeSampling::generate_local_graph(Graph &g, const uint num_itera
 
         // Get neighborhood around the triple up to depth.
         explore_neighborhood(g, triple, num_iterations, triple_to_int, new_graph, edge_type, vertex_id, local,
-                             node_label_map, use_labels);
+                             node_label_map, use_node_labels, use_edge_labels);
     }
 
     Labels new_node_labels;
@@ -452,7 +566,8 @@ Graph GenerateThreeSampling::generate_local_graph(Graph &g, const uint num_itera
 void GenerateThreeSampling::explore_neighborhood(Graph &g, const ThreeTuple &triple, const uint num_iterations,
                                                  unordered_map<ThreeTuple, uint> &triple_to_int, Graph &new_graph,
                                                  EdgeLabels &edge_type, EdgeLabels &vertex_id, EdgeLabels &local,
-                                                 unordered_map<Node, Label> &node_label_map, const bool use_labels)
+                                                 unordered_map<Node, Label> &node_label_map, const bool use_node_labels,
+                                                 const bool use_edge_labels)
 {
     // Manage depth of node in k-disk.
     unordered_map<ThreeTuple, uint> depth;
@@ -470,7 +585,7 @@ void GenerateThreeSampling::explore_neighborhood(Graph &g, const ThreeTuple &tri
     depth.insert({{triple, 0}});
 
     Labels labels;
-    if (use_labels)
+    if (use_node_labels)
     {
         labels = g.get_labels();
     }
@@ -509,7 +624,7 @@ void GenerateThreeSampling::explore_neighborhood(Graph &g, const ThreeTuple &tri
                 new_graph.add_edge(current_node, new_node);
 
                 Label new_label;
-                if (use_labels)
+                if (use_node_labels)
                 {
                     new_label = compute_label(g, v_n, w, u, labels[v_n] + 1, labels[w] + 2, labels[u] + 3);
                 }
@@ -548,7 +663,7 @@ void GenerateThreeSampling::explore_neighborhood(Graph &g, const ThreeTuple &tri
                 new_graph.add_edge(current_node, new_node);
 
                 Label new_label;
-                if (use_labels)
+                if (use_node_labels)
                 {
                     new_label = compute_label(g, v, w_n, u, labels[v] + 1, labels[w_n] + 2, labels[u] + 3);
                 }
@@ -587,7 +702,7 @@ void GenerateThreeSampling::explore_neighborhood(Graph &g, const ThreeTuple &tri
                 new_graph.add_edge(current_node, new_node);
 
                 Label new_label;
-                if (use_labels)
+                if (use_node_labels)
                 {
                     new_label = compute_label(g, v, w, u_n, labels[v] + 1, labels[w] + 2, labels[u_n] + 3);
                 }

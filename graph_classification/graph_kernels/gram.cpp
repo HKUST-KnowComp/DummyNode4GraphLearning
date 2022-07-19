@@ -129,29 +129,49 @@ int main(int argc, char **argv)
             {
                 ColorRefinement::ColorRefinementKernel graph_kernel(gdb);
 
+                // for (uint i = 0; i <= n_iters; ++i)
+                // {
+                //     GramMatrix gm = graph_kernel.compute_gram_matrix(i, use_labels, use_edge_labels, true, false);
+                //     AuxiliaryMethods::write_libsvm(
+                //         gm, classes[d],
+                //         gram_dir + "/" + ds + "__" + kernel + to_string(k) + "_" + to_string(i) + ".gram",
+                //         true);
+                //     gm = GramMatrix(); // release memory
+                // }
+                vector<GramMatrix> gms =
+                    graph_kernel.compute_gram_matrices(n_iters, use_labels, use_edge_labels, true, false);
                 for (uint i = 0; i <= n_iters; ++i)
                 {
-                    GramMatrix gm = graph_kernel.compute_gram_matrix(i, use_labels, use_edge_labels, true, false);
                     AuxiliaryMethods::write_libsvm(
-                        gm, classes[d],
-                        gram_dir + "/" + ds + "__" + kernel + to_string(k) + "_" + to_string(i) + ".gram",
-                        true);
-                    gm = GramMatrix(); // release memory
+                        gms[i], classes[d],
+                        gram_dir + "/" + ds + "__" + kernel + to_string(k) + "_" + to_string(i) + ".gram", true);
                 }
+                gms.clear();
+                gms.shrink_to_fit(); // release memory
             }
             else if (kernel.compare("WLOA") == 0)
             {
                 ColorRefinement::ColorRefinementKernel graph_kernel(gdb);
 
+                // for (uint i = 0; i <= n_iters; ++i)
+                // {
+                //     GramMatrix gm = graph_kernel.compute_gram_matrix(i, use_labels, use_edge_labels, true, true);
+                //     AuxiliaryMethods::write_libsvm(
+                //         gm, classes[d],
+                //         gram_dir + "/" + ds + "__" + kernel + "_" + to_string(i) + ".gram",
+                //         true);
+                //     gm = GramMatrix(); // release memory
+                // }
+
+                vector<GramMatrix> gms =
+                    graph_kernel.compute_gram_matrices(n_iters, use_labels, use_edge_labels, true, true);
                 for (uint i = 0; i <= n_iters; ++i)
                 {
-                    GramMatrix gm = graph_kernel.compute_gram_matrix(i, use_labels, use_edge_labels, true, true);
                     AuxiliaryMethods::write_libsvm(
-                        gm, classes[d],
-                        gram_dir + "/" + ds + "__" + kernel + "_" + to_string(i) + ".gram",
-                        true);
-                    gm = GramMatrix(); // release memory
+                        gms[i], classes[d], gram_dir + "/" + ds + "__" + kernel + "_" + to_string(i) + ".gram", true);
                 }
+                gms.clear();
+                gms.shrink_to_fit(); // release memory
             }
             else if (kernel.compare("SP") == 0)
             {
@@ -159,9 +179,7 @@ int main(int argc, char **argv)
 
                 GramMatrix gm = graph_kernel.compute_gram_matrix(use_labels, true);
                 AuxiliaryMethods::write_libsvm(
-                    gm, classes[d],
-                    gram_dir + "/" + ds + "__" + kernel + "_" + to_string(0) + ".gram",
-                    true);
+                    gm, classes[d], gram_dir + "/" + ds + "__" + kernel + "_" + to_string(0) + ".gram", true);
                 gm = GramMatrix(); // release memory
             }
             else if (kernel.compare("GR") == 0)
@@ -170,9 +188,7 @@ int main(int argc, char **argv)
 
                 GramMatrix gm = graph_kernel.compute_gram_matrix(use_labels, use_edge_labels, true);
                 AuxiliaryMethods::write_libsvm(
-                    gm, classes[d],
-                    gram_dir + "/" + ds + "__" + kernel + "_" + to_string(0) + ".gram",
-                    true);
+                    gm, classes[d], gram_dir + "/" + ds + "__" + kernel + "_" + to_string(0) + ".gram", true);
                 gm = GramMatrix(); // release memory
             }
         }
@@ -211,15 +227,26 @@ int main(int argc, char **argv)
                 }
                 GenerateTwo::GenerateTwo graph_kernel(gdb);
 
+                // for (uint i = 0; i <= n_iters; ++i)
+                // {
+                //     GramMatrix gm = graph_kernel.compute_gram_matrix(i, use_labels, use_edge_labels, algorithm, true,
+                //     true); AuxiliaryMethods::write_libsvm(
+                //         gm, classes[d],
+                //         gram_dir + "/" + ds + "__" + kernel + to_string(k) + "_" + to_string(i) + ".gram",
+                //         true);
+                //     gm = GramMatrix(); // release memory
+                // }
+
+                vector<GramMatrix> gms =
+                    graph_kernel.compute_gram_matrices(n_iters, use_labels, use_edge_labels, algorithm, true, true);
                 for (uint i = 0; i <= n_iters; ++i)
                 {
-                    GramMatrix gm = graph_kernel.compute_gram_matrix(i, use_labels, use_edge_labels, algorithm, true, true);
                     AuxiliaryMethods::write_libsvm(
-                        gm, classes[d],
-                        gram_dir + "/" + ds + "__" + kernel + to_string(k) + "_" + to_string(i) + ".gram",
-                        true);
-                    gm = GramMatrix(); // release memory
+                        gms[i], classes[d],
+                        gram_dir + "/" + ds + "__" + kernel + to_string(k) + "_" + to_string(i) + ".gram", true);
                 }
+                gms.clear();
+                gms.shrink_to_fit(); // release memory
             }
         }
         else if (k == 3)
@@ -257,15 +284,26 @@ int main(int argc, char **argv)
                 }
                 GenerateThree::GenerateThree graph_kernel(gdb);
 
+                // for (uint i = 0; i <= n_iters; ++i)
+                // {
+                //     GramMatrix gm = graph_kernel.compute_gram_matrix(i, use_labels, use_edge_labels, algorithm, true,
+                //     true); AuxiliaryMethods::write_libsvm(
+                //         gm, classes[d],
+                //         gram_dir + "/" + ds + "__" + kernel + to_string(k) + "_" + to_string(i) + ".gram",
+                //         true);
+                //     gm = GramMatrix(); // release memory
+                // }
+
+                vector<GramMatrix> gms =
+                    graph_kernel.compute_gram_matrices(n_iters, use_labels, use_edge_labels, algorithm, true, true);
                 for (uint i = 0; i <= n_iters; ++i)
                 {
-                    GramMatrix gm = graph_kernel.compute_gram_matrix(i, use_labels, use_edge_labels, algorithm, true, true);
                     AuxiliaryMethods::write_libsvm(
-                        gm, classes[d],
-                        gram_dir + "/" + ds + "__" + kernel + to_string(k) + "_" + to_string(i) + ".gram",
-                        true);
-                    gm = GramMatrix(); // release memory
+                        gms[i], classes[d],
+                        gram_dir + "/" + ds + "__" + kernel + to_string(k) + "_" + to_string(i) + ".gram", true);
                 }
+                gms.clear();
+                gms.shrink_to_fit(); // release memory
             }
         }
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
