@@ -31,7 +31,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--dataset_dir", type=str,
-        default=os.path.join(os.path.dirname(dirname), "datasets"),
+        default="../data_processing/tu_data",
         help="the directory of gram matrices"
     )
     parser.add_argument(
@@ -149,9 +149,6 @@ if __name__ == "__main__":
         for proc in processes:
             proc.wait()
         processes.clear()
-
-    print("-" * 80, flush=True)
-
 
     # run svm
     processes = []

@@ -54,8 +54,20 @@ GraphDatabase read_graph_txt_file(string path, string data_set_name)
     }
     else
     {
-        cout << "!!! Unable to open file 1 !!!\n";
-        exit(EXIT_FAILURE);
+        ifstream myfile(path + "/" + data_set_name + "/raw/" + data_set_name + "_graph_indicator.txt");
+        if (myfile.is_open())
+        {
+            while (getline(myfile, line))
+            {
+                graph_indicator.push_back(stoi(line));
+            }
+            myfile.close();
+        }
+        else
+        {
+            cout << "!!! Unable to open file graph_indicator.txt !!!\n";
+            exit(EXIT_FAILURE);
+        }
     }
 
     uint num_graphs = graph_indicator.back() + 1;
@@ -75,7 +87,19 @@ GraphDatabase read_graph_txt_file(string path, string data_set_name)
     }
     else
     {
-        label_data = false;
+        ifstream labels(path + "/" + data_set_name + "/raw/" + data_set_name + "_node_labels.txt");
+        if (labels.is_open())
+        {
+            while (getline(labels, label))
+            {
+                node_labels.push_back(stoul(label));
+            }
+            myfile.close();
+        }
+        else
+        {
+            label_data = false;
+        }
     }
 
     // Get node attributes from for each node.
@@ -93,7 +117,19 @@ GraphDatabase read_graph_txt_file(string path, string data_set_name)
     }
     else
     {
-        attribute_data = false;
+        ifstream attributes(path + "/" + data_set_name + "/raw/" + data_set_name + "_node_attributes.txt");
+        if (attributes.is_open())
+        {
+            while (getline(attributes, attribute))
+            {
+                node_attributes.push_back(split_string_float(attribute));
+            }
+            myfile.close();
+        }
+        else
+        {
+            attribute_data = false;
+        }
     }
 
     GraphDatabase graph_database;
@@ -150,7 +186,19 @@ GraphDatabase read_graph_txt_file(string path, string data_set_name)
     }
     else
     {
-        edge_label_data = false;
+        ifstream elabels(path + "/" + data_set_name + "/raw/" + data_set_name + "_edge_labels.txt");
+        if (elabels.is_open())
+        {
+            while (getline(elabels, label))
+            {
+                edge_labels.push_back(stoul(label));
+            }
+            myfile.close();
+        }
+        else
+        {
+            edge_label_data = false;
+        }
     }
 
     // Insert edges for each graph.
@@ -173,7 +221,19 @@ GraphDatabase read_graph_txt_file(string path, string data_set_name)
     }
     else
     {
-        edge_attribute_data = false;
+        ifstream eattr(path + "/" + data_set_name + "/raw/" + data_set_name + "_edge_attributes.txt");
+        if (eattr.is_open())
+        {
+            while (getline(eattr, label))
+            {
+                edge_attributes.push_back(split_string_float(label));
+            }
+            myfile.close();
+        }
+        else
+        {
+            edge_attribute_data = false;
+        }
     }
 
     // Insert edges for each graph.
@@ -221,8 +281,45 @@ GraphDatabase read_graph_txt_file(string path, string data_set_name)
     }
     else
     {
-        cout << "!!! Unable to open file 2!!!\n";
-        exit(EXIT_FAILURE);
+        ifstream edge_file(path + "/" + data_set_name + "/raw/" + data_set_name + "_A.txt");
+        if (edge_file.is_open())
+        {
+            while (getline(edge_file, line))
+            {
+                vector<int> r = split_string(line);
+
+                uint graph_num = graph_indicator[r[0] - 1];
+                uint off = offset[graph_num];
+                Node v = r[0] - 1 - off;
+                Node w = r[1] - 1 - off;
+
+                if (!graph_database[graph_num].has_edge(v, w))
+                {
+                    graph_database[graph_num].add_edge(v, w);
+                }
+
+                if (edge_label_data)
+                {
+                    edge_label_vector[graph_num].insert({{make_tuple(v, w), edge_labels[c]}});
+                    edge_label_vector[graph_num].insert({{make_tuple(w, v), edge_labels[c]}});
+                }
+
+                if (edge_attribute_data)
+                {
+                    edge_attribute_vector[graph_num].insert({{make_tuple(v, w), edge_attributes[c]}});
+                    edge_attribute_vector[graph_num].insert({{make_tuple(w, v), edge_attributes[c]}});
+                }
+
+                edges.push_back(stoi(line));
+                c++;
+            }
+            edge_file.close();
+        }
+        else
+        {
+            cout << "!!! Unable to open file A.txt!!!\n";
+            exit(EXIT_FAILURE);
+        }
     }
 
     if (edge_label_data)
@@ -260,8 +357,21 @@ vector<int> read_classes(string path, string data_set_name)
     }
     else
     {
-        cout << "!!! Unable to open file !!!\n";
-        exit(EXIT_FAILURE);
+        
+        ifstream myfile(path + "/" + data_set_name + "/raw/" + data_set_name + "_graph_labels.txt");
+        if (myfile.is_open())
+        {
+            while (getline(myfile, line))
+            {
+                classes.push_back(stoi(line));
+            }
+            myfile.close();
+        }
+        else
+        {
+            cout << "!!! Unable to open file !!!\n";
+            exit(EXIT_FAILURE);
+        }
     }
 
     return classes;
@@ -283,8 +393,20 @@ vector<vector<float>> read_multi_targets(string path, string data_set_name)
     }
     else
     {
-        cout << "!!! Unable to open file !!!\n";
-        exit(EXIT_FAILURE);
+        ifstream myfile(path + "/" + data_set_name + "/raw/" + data_set_name + "_graph_attributes.txt");
+        if (myfile.is_open())
+        {
+            while (getline(myfile, line))
+            {
+                targets.push_back(split_string_float(line));
+            }
+            myfile.close();
+        }
+        else
+        {
+            cout << "!!! Unable to open file !!!\n";
+            exit(EXIT_FAILURE);
+        }
     }
 
     return targets;
@@ -358,7 +480,7 @@ void write_libsvm(const GramMatrix &gram_matrix, const vector<int> classes, stri
     }
     else
     {
-        cout << "!!! Unable to open file 3!!!\n";
+        cout << "!!! Unable to open file " + filename + "!!!\n";
         exit(EXIT_FAILURE);
     }
 }

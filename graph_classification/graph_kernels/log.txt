@@ -601,3 +601,172 @@ run.py --datasets DUMMY_NCI1 DUMMY_NCI109 --dataset_dir ../../data_processing/tu
 --------------------------------------------------------------------------------
 2022/07/13 22:42:51
 run.py --datasets CONJ_NCI1 CONJ_NCI109 --dataset_dir ../../data_processing/tu_data --kernel WLOA --k 1 --add_origin true
+--------------------------------------------------------------------------------
+2022/07/18 22:13:35
+run.py --datasets PROTEINS --dataset_dir ../../data_processing/tu_data --kernel WL --k 1 --add_origin true
+!!! Unable to open file 1 !!!
+--------------------------------------------------------------------------------
+2022/07/18 22:14:07
+run.py --datasets DUMMY_PROTEINS --dataset_dir ../../data_processing/tu_data --kernel WL --k 1 --add_origin true
+Warning: DUMMY_PROTEINS is not a valid dataset.
+!!! Unable to open file 1 !!!
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:14:24
+run.py --datasets DUMMY_PROTEINS --dataset_dir ../../data_processing/tu_data/DUMMY_PROTEINS --kernel WL --k 1 --add_origin true
+Warning: DUMMY_PROTEINS is not a valid dataset.
+!!! Unable to open file 1 !!!
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:14:25
+run.py --datasets DUMMY_PROTEINS --dataset_dir ../../data_processing/tu_data --kernel WL --k 1 --add_origin true
+Warning: DUMMY_PROTEINS is not a valid dataset.
+!!! Unable to open file 1 !!!
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:14:39
+run.py --datasets DUMMY_PROTEINS --dataset_dir ../../data_processing/tu_data --kernel WL --k 1 --add_origin true
+Warning: DUMMY_PROTEINS is not a valid dataset.
+!!! Unable to open file 1 !!!
+Traceback (most recent call last):
+  File "merge_grams.py", line 33, in <module>
+    merge_svm_files(args.load_feat_files, args.save_feat_file)
+  File "merge_grams.py", line 21, in merge_svm_files
+    assert np.equal(labels, labels_).all()
+ValueError: operands could not be broadcast together with shapes (1113,) (208,) 
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:15:06
+run.py --datasets DUMMY_PROTEINS --dataset_dir ../../data_processing/tu_data --kernel WL --k 1 --add_origin true
+Warning: DUMMY_PROTEINS is not a valid dataset.
+!!! Unable to open file 1 !!!
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:15:40
+run.py --datasets DUMMY_PROTEINS --dataset_dir ../../data_processing/tu_data --kernel WL --k 1 --add_origin false
+Warning: DUMMY_PROTEINS is not a valid dataset.
+!!! Unable to open file 1 !!!
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:15:45
+run.py --datasets PROTEINS --dataset_dir ../../data_processing/tu_data --kernel WL --k 1 --add_origin false
+!!! Unable to open file 1 !!!
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:16:18
+run.py --datasets DUMMY_PROTEINS --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+Warning: DUMMY_PROTEINS is not a valid dataset.
+WL-5	DUMMY_PROTEINS	3 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:16:42
+run.py --datasets DUMMY_PROTEINS --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin true
+Warning: DUMMY_PROTEINS is not a valid dataset.
+WL-5	DUMMY_PROTEINS	3 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:17:22
+run.py --datasets CONJ_PROTEINS --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin true
+Warning: CONJ_PROTEINS is not a valid dataset.
+WL-5	CONJ_PROTEINS	6 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:24:18
+run.py --datasets PROTEINS --dataset_dir ../../data_processing/tu_data --kernel WL --k 1 --add_origin false
+!!! Unable to open file 1 !!!
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:24:24
+run.py --datasets PROTEINS --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	PROTEINS	3 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:24:35
+run.py --datasets DUMMY_PROTEINS --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin true
+Warning: DUMMY_PROTEINS is not a valid dataset.
+WL-5	DUMMY_PROTEINS	3 seconds
+--------------------------------------------------------------------------------
+2022/07/18 22:24:39
+run.py --datasets CONJ_PROTEINS --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin true
+Warning: CONJ_PROTEINS is not a valid dataset.
+WL-5	CONJ_PROTEINS	7 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:26:38
+run.py --datasets PROTEINS --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	PROTEINS	3 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:29:21
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+--------------------------------------------------------------------------------
+2022/07/18 22:29:34
+run.py --datasets DUMMY_NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin true
+Warning: DUMMY_NCI1 is not a valid dataset.
+WL-5	NCI1	40 seconds
+--------------------------------------------------------------------------------
+WL-5	DUMMY_NCI1	40 seconds
+--------------------------------------------------------------------------------
+2022/07/18 22:31:15
+run.py --datasets CONJ_NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin true
+Warning: CONJ_NCI1 is not a valid dataset.
+WL-5	CONJ_NCI1	44 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:42:38
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	NCI1	42 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:48:21
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+--------------------------------------------------------------------------------
+2022/07/18 22:49:04
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	NCI1	40 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 22:49:49
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+--------------------------------------------------------------------------------
+2022/07/18 23:24:03
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	NCI1	40 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 23:29:16
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	NCI1	41 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 23:32:10
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	NCI1	42 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 23:35:13
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	NCI1	41 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 23:39:58
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	NCI1	40 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 23:42:42
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	NCI1	44 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/18 23:47:00
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	NCI1	41 seconds
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2022/07/19 00:42:32
+run.py --datasets NCI1 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin false
+WL-5	NCI1	42 seconds
+--------------------------------------------------------------------------------

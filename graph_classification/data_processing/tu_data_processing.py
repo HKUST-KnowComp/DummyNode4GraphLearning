@@ -2,11 +2,13 @@ import argparse
 import igraph as ig
 import os
 import torch
+import shutil
 from collections import Counter
 from itertools import chain
 # from torch_geometric.data import InMemoryDataset
-# from torch_geometric.datasets import TUDataset
+from torch_geometric.datasets import TUDataset
 # from torch_geometric.io import read_tu_data
+from torch_geometric.data import InMemoryDataset, download_url, extract_zip
 
 # class MyOwnDataset(InMemoryDataset):
 #     def __init__(
@@ -99,6 +101,17 @@ from itertools import chain
 #     def __repr__(self) -> str:
 #         return f'{self.name}({len(self)})'
 
+def download(root, name):
+    url = 'https://www.chrsmrrs.com/graphkerneldatasets'
+    folder = os.path.join(root, name)
+    path = download_url(f'{url}/{name}.zip', folder)
+    extract_zip(path, folder)
+    os.unlink(path)
+    rawpath = os.path.join(root, name, "raw")
+    if os.path.exists(rawpath):
+        shutil.rmtree(rawpath)
+    os.rename(os.path.join(folder, name), rawpath)
+    return rawpath
 
 def load_graph_labels_from_TUDatadir(data_dir):
     graph_labels = []
@@ -110,10 +123,14 @@ def load_graph_labels_from_TUDatadir(data_dir):
 
 
 def load_graph_data_from_TUDatadir(data_dir, with_dummy=False):
+    if os.path.exists(os.path.join(data_dir, "raw")):
+        data_dir = os.path.join(data_dir, "raw")
     A = []
     graph_indicator = []
     node_labels = []
     edge_labels = []
+    node_attributes = []
+    edge_attributes = []
     for file_name in sorted(os.listdir(data_dir)):
         if file_name.endswith("_A.txt"):
             with open(os.path.join(data_dir, file_name), "r") as f:
@@ -127,6 +144,12 @@ def load_graph_data_from_TUDatadir(data_dir, with_dummy=False):
         elif file_name.endswith("_edge_labels.txt"):
             with open(os.path.join(data_dir, file_name), "r") as f:
                 edge_labels.extend([int(line.strip()) for line in f])
+        elif file_name.endswith("_node_attributes.txt"):
+            with open(os.path.join(data_dir, file_name), "r") as f:
+                node_attributes.extend([float(line.strip()) for line in f])
+        elif file_name.endswith("_edge_attributes.txt"):
+            with open(os.path.join(data_dir, file_name), "r") as f:
+                edge_attributes.extend([float(line.strip()) for line in f])
 
     if len(node_labels) == 0:
         node_labels = [1] * len(graph_indicator)
@@ -164,18 +187,26 @@ def load_graph_data_from_TUDatadir(data_dir, with_dummy=False):
             graph.add_vertices(n + 1)
             graph.vs["LABEL"] = node_labels[pre_n:(pre_n + n)] + [0]
             graph.vs["IS_DUMMY"] = [0] * n + [1]
+            if len(node_attributes) > 0:
+                graph.vs["ATTR"] = node_attributes[pre_n:(pre_n + n)] + [type(node_attributes[pre_n])(0)]
             graph.add_edges([(e[0] - pre_n - 1, e[1] - pre_n - 1) for e in A[i:j]])  # m edges
             graph.add_edges(chain.from_iterable([[(n, v), (v, n)] for v in range(0, n)]))  # 2n dummy edges
             graph.es["LABEL"] = edge_labels[i:j] + [0] * (2 * n)
             graph.es["IS_DUMMY"] = [0] * (j - i) + [1] * (2 * n)
+            if len(edge_attributes) > 0:
+                graph.es["ATTR"] = edge_attributes[i:j] + [type(edge_attributes[pre_n])(0)] * (2 * n)
 
             assert n + 1 == graph.vcount()
             assert m + 2 * n == graph.ecount()
         else:
             graph.add_vertices(n)
             graph.vs["LABEL"] = node_labels[pre_n:(pre_n + n)]
+            if len(node_attributes) > 0:
+                graph.vs["ATTR"] = node_attributes[pre_n:(pre_n + n)]
             graph.add_edges([(e[0] - pre_n - 1, e[1] - pre_n - 1) for e in A[i:j]])  # m edges
             graph.es["LABEL"] = edge_labels[i:j]
+            if len(edge_attributes) > 0:
+                graph.es["ATTR"] = edge_attributes[i:j]
 
             assert n == graph.vcount()
             assert m == graph.ecount()
@@ -310,7 +341,8 @@ def convert_conjugate_graph_forward(graph):
 def save_graph_labels(graph_labels, data_dir, prefix=""):
     if prefix == "":
         prefix = os.path.basename(data_dir) + "_"
-    # prefix = os.path.join("raw", prefix)
+        if prefix == "raw_":
+            prefix = os.path.basename(os.path.dirname(data_dir)) + "_"
 
     with open(os.path.join(data_dir, prefix + "graph_labels.txt"), "w") as f:
         for line in graph_labels:
@@ -321,7 +353,8 @@ def save_graph_labels(graph_labels, data_dir, prefix=""):
 def save_graph_data(graphs, data_dir, prefix=""):
     if prefix == "":
         prefix = os.path.basename(data_dir) + "_"
-    # prefix = os.path.join("raw", prefix)
+        if prefix == "raw_":
+            prefix = os.path.basename(os.path.dirname(data_dir)) + "_"
 
     n = 1  # start from 1
     m = 0
@@ -354,6 +387,20 @@ def save_graph_data(graphs, data_dir, prefix=""):
                 f.write(str(line))
                 f.write("\n")
 
+    if "ATTR" in g.vertex_attributes():
+        with open(os.path.join(data_dir, prefix + "node_attributes.txt"), "w") as f:
+            for g in graphs:
+                for line in g.vs["ATTR"]:
+                    f.write(str(line))
+                    f.write("\n")
+
+    if "ATTR" in g.edge_attributes():
+        with open(os.path.join(data_dir, prefix + "edge_attributes.txt"), "w") as f:
+            for g in graphs:
+                for line in g.es["ATTR"]:
+                    f.write(str(line))
+                    f.write("\n")
+
     with open(os.path.join(data_dir, prefix + "node_ids.txt"), "w") as f:
         for g in graphs:
             for line in g.vs["ID"]:
@@ -368,39 +415,41 @@ def save_graph_data(graphs, data_dir, prefix=""):
 
 
 if __name__ == "__main__":
+    dirname = os.path.dirname(__file__)
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--load_data_dir", type=str,
-        default="tu_data/PROTEINS"
+        "--data_dir",
+        type=str,
+        default=os.path.join(dirname, "tu_data")
     )
     parser.add_argument(
-        "--save_dummy_data_dir", type=str,
-        default="tu_data/DUMMY_PROTEINS"
-    )
-    parser.add_argument(
-        "--save_line_data_dir", type=str,
-        default="tu_data/LINE_PROTEINS"
-    )
-    parser.add_argument(
-        "--save_conjugate_data_dir", type=str,
-        default="tu_data/CONJ_PROTEINS"
+        "--dataset",
+        type=str,
+        default="PROTEINS",
+        help="TUDataset name (e.g., PROTEINS/DD/NCI1/NCI109)"
     )
     args = parser.parse_args()
 
-    graph_labels = load_graph_labels_from_TUDatadir(args.load_data_dir)
-    graph_data = load_graph_data_from_TUDatadir(args.load_data_dir, with_dummy=False)
-    dummy_graph_data = load_graph_data_from_TUDatadir(args.load_data_dir, with_dummy=True)
+    raw_path = download(args.data_dir, args.dataset)
+    graph_labels = load_graph_labels_from_TUDatadir(raw_path)
+    graph_data = load_graph_data_from_TUDatadir(raw_path, with_dummy=False)
+    dummy_graph_data = load_graph_data_from_TUDatadir(raw_path, with_dummy=True)
     line_graph_data = [convert_conjugate_graph_forward(graph) for graph in graph_data]
     conjugate_graph_data = [convert_conjugate_graph_forward(graph) for graph in dummy_graph_data]
 
-    os.makedirs(args.save_dummy_data_dir, exist_ok=True)
-    os.makedirs(args.save_line_data_dir, exist_ok=True)
-    os.makedirs(args.save_conjugate_data_dir, exist_ok=True)
+    save_dummy_data_dir = raw_path.replace(args.dataset, "DUMMY_" + args.dataset)
+    save_line_data_dir = raw_path.replace(args.dataset, "LINE_" + args.dataset)
+    save_conjugate_data_dir = raw_path.replace(args.dataset, "CONJ_" + args.dataset)
 
-    save_graph_data(dummy_graph_data, args.save_dummy_data_dir)
-    save_graph_data(line_graph_data, args.save_line_data_dir)
-    save_graph_data(conjugate_graph_data, args.save_conjugate_data_dir)
+    os.makedirs(save_dummy_data_dir, exist_ok=True)
+    os.makedirs(save_line_data_dir, exist_ok=True)
+    os.makedirs(save_conjugate_data_dir, exist_ok=True)
 
-    save_graph_labels(graph_labels, args.save_dummy_data_dir)
-    save_graph_labels(graph_labels, args.save_line_data_dir)
-    save_graph_labels(graph_labels, args.save_conjugate_data_dir)
+    save_graph_data(dummy_graph_data, save_dummy_data_dir)
+    save_graph_data(line_graph_data, save_line_data_dir)
+    save_graph_data(conjugate_graph_data, save_conjugate_data_dir)
+
+    save_graph_labels(graph_labels, save_dummy_data_dir)
+    save_graph_labels(graph_labels, save_line_data_dir)
+    save_graph_labels(graph_labels, save_conjugate_data_dir)

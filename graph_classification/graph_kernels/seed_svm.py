@@ -74,7 +74,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset_dir",
         type=str,
-        default=os.path.join(os.path.dirname(dirname), "datasets"),
+        default="../data_processing/tu_data",
         help="the directory of gram matrices"
     )
     parser.add_argument("--k", type=int, default=1, help="complexity of kernel functions")
@@ -91,16 +91,12 @@ if __name__ == "__main__":
     for dataset in args.datasets:
         class_file_name = os.path.join(args.dataset_dir, dataset, dataset + "_graph_labels.txt")
         if not os.path.exists(class_file_name):
-            class_file_name = os.path.join(args.dataset_dir, dataset + "_graph_labels.txt")
+            class_file_name = os.path.join(args.dataset_dir, dataset, "raw", dataset + "_graph_labels.txt")
         if not os.path.exists(class_file_name):
-            # raise FileNotFoundError("%s and %s are not found." % (
-            #     os.path.join(args.dataset_dir, dataset, dataset + "_graph_labels.txt"),
-            #     os.path.join(args.dataset_dir, dataset + "_graph_labels.txt")
-            # ))
             print(
                 "%s and %s are not found." % (
                     os.path.join(args.dataset_dir, dataset, dataset + "_graph_labels.txt"),
-                    os.path.join(args.dataset_dir, dataset + "_graph_labels.txt")
+                    os.path.join(args.dataset_dir, dataset, "raw", dataset + "_graph_labels.txt")
                 )
             )
             continue
