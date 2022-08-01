@@ -200,8 +200,9 @@ if __name__ == '__main__':
     parser.add_argument('--transform_dummy', type=str, default='', help='[no_activation|OTHER_NON_EMPTY_STRING]')
 
     # for additional arguments of the baseline models
-    parser.add_argument('--additional', type=str, default='', help='Additional parameters for the baseline models')
-
+    import json
+    parser.add_argument('--additional', type=json.loads, default='{}', help='Additional parameters for the baseline models')
+                        
     args = parser.parse_args()
 
     os.makedirs(args.save_model_dir, exist_ok=True)
@@ -227,6 +228,10 @@ if __name__ == '__main__':
     setattr(dataset, 'max_num_nodes', max_num_nodes)
     args.max_num_nodes = max_num_nodes
     logger.info('Maximum number of nodes: {}'.format(max_num_nodes))
+
+    # set number of relations for Relational conv models
+    args.num_relations = dataset.num_edge_features
+    logger.info('Dataset # edge features: {}'.format(args.num_relations))
 
     # Are these two still right after adding dummy node? YES
     args.num_classes = dataset.num_classes
