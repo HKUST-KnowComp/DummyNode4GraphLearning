@@ -9,18 +9,10 @@ We conduct experiments on 4 graph benchmark datasets: ```PROTEINS```, ```DD```, 
 Run the following scrips to download data, add with dummy nodes, and convert to conjugates.
 
 ```bash
-`python data_processing/tu_data_processing.py --dataset PROTEINS --data_dir data_processing/tu_data` 
-`python data_processing/tu_data_processing.py --dataset DD --data_dir data_processing/tu_data` 
-`python data_processing/tu_data_processing.py --dataset NCI1 --data_dir data_processing/tu_data` 
-`python data_processing/tu_data_processing.py --dataset NCI109 --data_dir data_processing/tu_data` 
-```
-
-```bash
-cd data_processing
-python tu_data_processing.py --load_data_dir tu_data/PROTEINS --save_dummy_data_dir tu_data/DUMMY_PROTEINS --save_line_data_dir tu_data/LINE_PROTEINS --save_conjugate_data_dir tu_data/CONJ_PROTEINS
-python tu_data_processing.py --load_data_dir tu_data/DD --save_dummy_data_dir tu_data/DUMMY_DD --save_line_data_dir tu_data/LINE_DD --save_conjugate_data_dir tu_data/CONJ_DD
-python tu_data_processing.py --load_data_dir tu_data/NCI1 --save_dummy_data_dir tu_data/DUMMY_NCI1 --save_line_data_dir tu_data/LINE_NCI1 --save_conjugate_data_dir tu_data/CONJ_NCI1
-python tu_data_processing.py --load_data_dir tu_data/NCI109 --save_dummy_data_dir tu_data/DUMMY_NCI109 --save_line_data_dir tu_data/LINE_NCI109 --save_conjugate_data_dir tu_data/CONJ_NCI109
+python data_processing/tu_data_processing.py --dataset PROTEINS --data_dir data_processing/tu_data
+python data_processing/tu_data_processing.py --dataset DD --data_dir data_processing/tu_data
+python data_processing/tu_data_processing.py --dataset NCI1 --data_dir data_processing/tu_data
+python data_processing/tu_data_processing.py --dataset NCI109 --data_dir data_processing/tu_data
 ```
 
 ### Stage 2: Training and Evaluation
@@ -33,7 +25,10 @@ Please note that you need to install ```Eigen``` manually.
 
 ```bash
 cd graph_kernels
-g++ gram.cpp src/*cpp -std=c++11 -o gram.out -O2 -I YOUR_CONDA_ENV_PATH/include --static
+g++ gram.cpp src/*cpp -std=c++11 -o gram.out -O2 -I YOUR_INCLUDE_PATH_WITH_EIGEN --static
+```
+
+```bash
 python run.py --datasets PROTEINS DD NCI1 NCI109 --dataset_dir ../data_processing/tu_data --kernel SP --k 1 --add_origin false # SP w/ G
 python run.py --datasets PROTEINS DD NCI1 NCI109 --dataset_dir ../data_processing/tu_data --kernel GR --k 1 --add_origin false # GR w/ G
 python run.py --datasets PROTEINS DD NCI1 NCI109 --dataset_dir ../data_processing/tu_data --kernel WLOA --k 1 --add_origin false # WLOA w/ G
@@ -47,11 +42,8 @@ python run.py --datasets PROTEINS DD NCI1 NCI109 --dataset_dir ../data_processin
 To conduct the experiments with dummy nodes, please use the datasets with dummy and set `--add_origin True`
 
 ```bash
-cd graph_kernels
-g++ gram.cpp src/*cpp -std=c++11 -o gram.out -O2 -I YOUR_CONDA_ENV_PATH/include --static
 python run.py --datasets DUMMY_PROTEINS DUMMY_DD DUMMY_NCI1 DUMMY_NCI109 --dataset_dir ../data_processing/tu_data --kernel SP --k 1 --add_origin true # SP w/ G_varphi
 python run.py --datasets DUMMY_PROTEINS DUMMY_DD DUMMY_NCI1 DUMMY_NCI109 --dataset_dir ../data_processing/tu_data --kernel GR --k 1 --add_origin true # GR w/ G_varphi
-python run.py --datasets DUMMY_PROTEINS DUMMY_DD DUMMY_NCI1 DUMMY_NCI109 --dataset_dir ../data_processing/tu_data --kernel WLOA --k 1 --add_origin true # WLOA w/ G_varphi
 python run.py --datasets DUMMY_PROTEINS DUMMY_DD DUMMY_NCI1 DUMMY_NCI109 --dataset_dir ../data_processing/tu_data --kernel WL --k 1 --add_origin true # 1-WL w/ G_varphi
 python run.py --datasets DUMMY_PROTEINS DUMMY_DD DUMMY_NCI1 DUMMY_NCI109 --dataset_dir ../data_processing/tu_data --kernel WL --k 2 --add_origin true # 2-WL w/ G_varphi
 python run.py --datasets DUMMY_PROTEINS DUMMY_DD DUMMY_NCI1 DUMMY_NCI109 --dataset_dir ../data_processing/tu_data --kernel DWL --k 2 --add_origin true # δ-2-WL w/ G_varphi
@@ -95,7 +87,6 @@ python main.py --dataset PROTEINS --dataset_dir ../data_processing/tu_data --mod
 To conduct the experiments with dummy nodes, please use the datasets with dummy and set `--add_dummy true`
 
 ```bash
-cd graph_neural_networks
 python main.py --dataset PROTEINS --dataset_dir ../data_processing/tu_data --model GraphSAGE --add_dummy true # GraphSAGE
 python main.py --dataset PROTEINS --dataset_dir ../data_processing/tu_data --model GCN --add_dummy true # GCN
 python main.py --dataset PROTEINS --dataset_dir ../data_processing/tu_data --model GIN --add_dummy true # GIN

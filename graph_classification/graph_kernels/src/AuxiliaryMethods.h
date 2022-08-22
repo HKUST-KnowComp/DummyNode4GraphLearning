@@ -13,16 +13,15 @@ using Eigen::MatrixXd;
 using namespace std;
 using namespace GraphLibrary;
 
-#ifdef __linux__
+// #ifdef __linux__
 #include <eigen3/unsupported/Eigen/src/SparseExtra/MarketIO.h>
-
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Sparse>
-#else
-#include "/usr/local/include/eigen3/Eigen/Dense"
-#include "/usr/local/include/eigen3/Eigen/Sparse"
-#include "/usr/local/include/eigen3/unsupported/Eigen/src/SparseExtra/MarketIO.h"
-#endif
+// #else
+// #include "/usr/local/include/eigen3/Eigen/Dense"
+// #include "/usr/local/include/eigen3/Eigen/Sparse"
+// #include "/usr/local/include/eigen3/unsupported/Eigen/src/SparseExtra/MarketIO.h"
+// #endif
 
 namespace AuxiliaryMethods
 {

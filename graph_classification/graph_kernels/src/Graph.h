@@ -1,11 +1,11 @@
 #ifndef WLFAST_GRAPH_H
 #define WLFAST_GRAPH_H
 
-#ifdef __linux__
+// #ifdef __linux__
 #include <eigen3/Eigen/Sparse>
-#else
-#include "/usr/local/include/eigen3/Eigen/Sparse"
-#endif
+// #else
+// #include "/usr/local/include/eigen3/Eigen/Sparse"
+// #endif
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
