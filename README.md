@@ -19,7 +19,7 @@ We extend graph kernels and graph neural networks for graph structure learning, 
 * scipy
 * eigen3
 * tensorboardX
-* python-igraph
+* python-igraph == 0.9.11
 * torch >= 1.7.0
 * numba >= 0.54.0
 * dgl >= 0.6.0
