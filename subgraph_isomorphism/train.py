@@ -1336,9 +1336,9 @@ if __name__ == "__main__":
     # convert graphs to conj_graphs
     if config["convert_conj"]:
         if logger:
-            logger.info("converting dual graphs and isomorphisms...")
+            logger.info("converting conjugate graphs and isomorphisms...")
         for data_type in datasets:
-            convert_to_dual_data(datasets[data_type])
+            convert_to_conjugate(datasets[data_type])
         avg_gd = math.ceil(max_nge / max_ngv)
         avg_pd = math.ceil(max_npe / max_npv)
 

@@ -23,7 +23,7 @@ from dataset import *
 from torch.optim import AdamW
 
 from config import get_eval_config
-from utils.graph import compute_norm, compute_largest_eigenvalues, convert_to_dual_graph, get_dual_subisomorphisms
+from utils.graph import compute_norm, compute_largest_eigenvalues, convert_conjugate_graph, get_conjugate_subisomorphisms
 from utils.log import init_logger, close_logger, generate_log_line, generate_best_line, get_best_epochs
 from utils.io import load_data, load_config, save_config, save_results
 from utils.scheduler import map_scheduler_str_to_scheduler
