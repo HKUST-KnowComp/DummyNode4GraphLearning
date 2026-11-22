@@ -116,7 +116,7 @@ class RGIN(torch.nn.Module):
         for layer in range(self.no_layers):
             if layer == 0:
                 x = self.first_h(x)
-                out += F.dropout(self.pooling(self.linears[layer](x), batch), p=self.dropout)
+                out += F.dropout(self.pooling(self.linears[layer](x), batch), p=self.dropout, training=self.training)
             else:
                 x = self.convs[layer-1](x, edge_index, edge_type)
                 # mlp
