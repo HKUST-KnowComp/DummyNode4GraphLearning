@@ -32,6 +32,7 @@ def train(args, model, optimizer, train_loader, valid_loader, logger=None, write
     # Collect train/val information
     info = {'loss': {'train': [], 'val': []}, 'acc': {'train': [], 'val': []}}
     for epoch in range(args.epochs):
+        model.train()  # eval_test() at the end of each epoch switches the model to eval mode
         train_loss = 0.0
         correct = 0
         for batch_id, data in enumerate(train_loader):
